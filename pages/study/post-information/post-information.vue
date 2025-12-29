@@ -348,7 +348,6 @@
 				getTeacher(data).then(response => {
 					if (response.code === 200) {
 						let teacherData = response.data;
-
 						// 处理数据并检查指定的老师是否存在
 						let levelA = {
 							id: 'A',
