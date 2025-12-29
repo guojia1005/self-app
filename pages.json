@@ -1,0 +1,223 @@
+{
+  "pages": [{
+    "path": "pages/login",
+    "style": {
+      "navigationBarTitleText": "登录"
+    }
+  }, {
+    "path": "pages/register",
+    "style": {
+      "navigationBarTitleText": "注册"
+    }
+  }, {
+    "path": "pages/index",
+    "style": {
+      "navigationBarTitleText": "首页"
+    }
+  }, {
+    "path": "pages/work/index",
+    "style": {
+      "navigationBarTitleText": "广场"
+    }
+  }, {
+    "path": "pages/mine/index",
+    "style": {
+      "navigationBarTitleText": "我的"
+    }
+  }, {
+    "path": "pages/mine/avatar/index",
+    "style": {
+      "navigationBarTitleText": "修改头像"
+    }
+  }, {
+    "path": "pages/mine/info/index",
+    "style": {
+      "navigationBarTitleText": "个人信息"
+    }
+  }, {
+    "path": "pages/mine/info/edit",
+    "style": {
+      "navigationBarTitleText": "编辑资料"
+    }
+  }, {
+    "path": "pages/mine/pwd/index",
+    "style": {
+      "navigationBarTitleText": "修改密码"
+    }
+  }, {
+    "path": "pages/mine/setting/index",
+    "style": {
+      "navigationBarTitleText": "应用设置"
+    }
+  }, {
+    "path": "pages/mine/help/index",
+    "style": {
+      "navigationBarTitleText": "常见问题"
+    }
+  }, {
+    "path": "pages/mine/about/index",
+    "style": {
+      "navigationBarTitleText": "关于我们"
+    }
+  }, {
+    "path": "pages/common/webview/index",
+    "style": {
+      "navigationBarTitleText": "浏览网页"
+    }
+  }, {
+    "path": "pages/common/textview/index",
+    "style": {
+      "navigationBarTitleText": "浏览文本"
+    }
+},
+{
+	"path": "pages/teacher/mine/QualificationCertification",
+	"style": {
+		"navigationBarTitleText": "资质上传"
+	}
+},
+/* {
+	"path": "components/image-upload/image-upload",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "components/video-upload/video-upload",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+}, */
+{
+	"path": "pages/study/index",
+	"style": {
+		"navigationBarTitleText": "学习"
+	}
+},
+{
+	"path": "pages/exchange/index",
+	"style": {
+		"navigationBarTitleText": "兑换"
+	}
+},
+/* {
+	"path": "components/customTabBar/customTabBar",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+}, */
+{
+	"path": "pages/student/square/index",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "pages/teacher/square/index",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "pages/student/square/post-information/index",
+	"style": {
+		"navigationBarTitleText": "发布信息"
+	}
+},
+{
+	"path": "pages/teacher/square/teachingInfo",
+	"style": {
+		"navigationBarTitleText": "授课信息"
+	}
+},
+{
+	"path": "pages/study/post-information/post-information",
+	"style": {
+		"navigationBarTitleText": "发布信息"
+	}
+},
+/* {
+	"path": "components/time-reservation/time-reservation",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "components/tree-select/tree-select-dropdown",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "components/tree-select/tree-node",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "components/select-checkbox/select-checkbox",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+}, */
+{
+	"path": "pages/study/study-process/study-process",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "pages/study/after-class/after-class",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "pages/work/test-questions/test-questions",
+	"style": {
+		"navigationBarTitleText": "测试题"
+	}
+}
+],
+
+/* "tabBar": {
+    "color": "#000000",
+    "selectedColor": "#000000",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff", 
+	"custom": "true",
+    "list": [{
+        "pagePath": "pages/index",
+        "iconPath": "static/images/tabbar/home.png",
+        "selectedIconPath": "static/images/tabbar/home_.png",
+        "text": "首页"
+      },{
+        "pagePath": "pages/study/index",
+        "iconPath": "static/images/tabbar/home.png",
+        "selectedIconPath": "static/images/tabbar/home_.png",
+        "text": "学习"
+      }, {
+        "pagePath": "pages/work/index",
+        "iconPath": "static/images/tabbar/work.png",
+        "selectedIconPath": "static/images/tabbar/work_.png",
+        "text": "广场"
+      },{
+        "pagePath": "pages/mine/index",
+        "iconPath": "static/images/tabbar/mine.png",
+        "selectedIconPath": "static/images/tabbar/mine_.png",
+        "text": "我的"
+      }
+    ]
+}, */
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "RuoYi",
+    "navigationBarBackgroundColor": "#FFFFFF"
+  },
+  // 针对APP的单独配置
+    "app-plus": {
+      "popGesture": "close",
+      "softinputNavBar": "auto"
+    }
+  }
+

@@ -1,0 +1,273 @@
+<template>
+	<view class="normal-login-container">
+		<view class="logo-content align-center justify-center flex">
+			<image style="width: 100rpx;height: 100rpx;" :src="globalConfig.appInfo.logo" mode="widthFix">
+			</image>
+			<text class="title">云塾移动端注册</text>
+		</view>
+		<view class="login-form-content">
+			<view class="input-item flex align-center">
+				<!-- <view class="iconfont icon-user icon"></view> -->
+				<uni-data-select v-model="registerForm.roleIds" placeholder="请选择角色" :localdata="roleOptions"
+					@change="changeRole" class="select-role"></uni-data-select>
+			</view>
+			<view v-if="registerForm.roleIds === 2" class="input-item flex align-center">
+				<!-- <view class="iconfont icon-user icon"></view> -->
+				<uni-data-picker placeholder="请选择门店" :localdata="deptOptions" v-model="registerForm.deptId"
+					@change="changeDept" />
+			</view>
+			<view class="input-item flex align-center">
+				<!-- <view class="iconfont icon-user icon"></view> -->
+				<input v-model="registerForm.idCard" class="input" type="text" placeholder="请输入身份证号" maxlength="18" />
+			</view>
+			<view class="input-item flex align-center">
+				<!-- <view class="iconfont icon-user icon"></view> -->
+				<input v-model="registerForm.username" class="input" type="text" placeholder="请输入账号" maxlength="30" />
+			</view>
+			<view class="input-item flex align-center">
+				<!-- <view class="iconfont icon-password icon"></view> -->
+				<input v-model="registerForm.password" type="password" class="input" placeholder="请输入密码"
+					maxlength="20" />
+			</view>
+			<view class="input-item flex align-center">
+				<!-- <view class="iconfont icon-password icon"></view> -->
+				<input v-model="registerForm.confirmPassword" type="password" class="input" placeholder="请输入重复密码"
+					maxlength="20" />
+			</view>
+			<view class="input-item flex align-center" style="width: 60%;margin: 0px;" v-if="captchaEnabled">
+				<!-- <view class="iconfont icon-code icon"></view> -->
+				<input v-model="registerForm.code" type="number" class="input" placeholder="请输入验证码" maxlength="4" />
+				<view class="login-code">
+					<image :src="codeUrl" @click="getCode" class="login-code-img"></image>
+				</view>
+			</view>
+			<view class="action-btn">
+				<button @click="handleRegister()" class="register-btn cu-btn block bg-blue lg round">注册</button>
+			</view>
+		</view>
+		<view class="xieyi text-center">
+			<text @click="handleUserLogin" class="text-blue">使用已有账号登录</text>
+		</view>
+	</view>
+</template>
+
+<script>
+	import {
+		getCodeImg,
+		register
+	} from '@/api/login'
+	import {
+		getRole,
+		getDept,
+		appRegister
+	} from '@/api/system/user.js'
+	import { isValidChineseID } from '../utils/validate.js'
+	import { dataFormat, transformDeptData } from '../utils/format'
+	import { handleTree } from '../utils/ruoyi.js'
+
+	export default {
+		data() {
+			return {
+				codeUrl: "",
+				captchaEnabled: true,
+				globalConfig: getApp().globalData.config,
+				registerForm: {
+					roleIds: "",
+					deptId: "",
+					username: "",
+					password: "",
+					confirmPassword: "",
+					code: "",
+					uuid: ""
+				},
+				// 角色数据
+				roleOptions: [],
+				// 门店数据
+				deptOptions: [],
+			}
+		},
+		created() {
+			this.getCode();
+			this.getRoles();
+			this.getDeptList();
+		},
+		methods: {
+			// 用户登录
+			handleUserLogin() {
+				this.$tab.navigateTo(`/pages/login`)
+			},
+			// 获取图形验证码
+			getCode() {
+				getCodeImg().then(res => {
+					this.captchaEnabled = res.captchaEnabled === undefined ? true : res.captchaEnabled
+					if (this.captchaEnabled) {
+						this.codeUrl = 'data:image/gif;base64,' + res.img
+						this.registerForm.uuid = res.uuid
+					}
+				})
+			},
+			// 注册方法
+			async handleRegister() {
+				if (this.registerForm.roleIds === '') {
+					this.$modal.msgError("请选择您的角色")
+				} else if (this.registerForm.roleIds === 2 && this.registerForm.deptId === '') {
+					this.$modal.msgError("请选择门店")
+				} else if (!this.registerForm.idCard) {
+					this.$modal.msgError("请输入身份证号")
+				} else if (isValidChineseID(this.registerForm.idCard) === false) {
+					this.$modal.msgError("请输入正确格式的身份证号")
+				} else if (this.registerForm.username === "") {
+					this.$modal.msgError("请输入您的账号")
+				} else if (this.registerForm.password === "") {
+					this.$modal.msgError("请输入您的密码")
+				} else if (this.registerForm.confirmPassword === "") {
+					this.$modal.msgError("请再次输入您的密码")
+				} else if (this.registerForm.password !== this.registerForm.confirmPassword) {
+					this.$modal.msgError("两次输入的密码不一致")
+				} else if (this.registerForm.code === "" && this.captchaEnabled) {
+					this.$modal.msgError("请输入验证码")
+				} else {
+					this.$modal.loading("注册中，请耐心等待...")
+					this.register()
+				}
+			},
+			// 用户注册
+			async register() {
+				let data = this.registerForm;
+				const roleIds = (data.roleIds).toString().split();
+				data.roleIds = roleIds;
+				appRegister(data).then(res => {
+					this.$modal.closeLoading()
+					uni.showModal({
+						title: "系统提示",
+						content: "恭喜你，您的账号 " + data.username + " 注册成功！",
+						success: function(res) {
+							if (res.confirm) {
+								uni.redirectTo({
+									url: `/pages/login`
+								});
+							}
+						}
+					})
+				}).catch(() => {
+					if (this.captchaEnabled) {
+						this.getCode()
+					}
+				})
+			},
+			getRoles() {
+				getRole().then(response => {
+					this.roleOptions = dataFormat(response.data, 'role')
+				})
+			},
+			// 切换角色
+			changeRole(val) {
+				console.log(val, '角色')
+				if (val === 2) {
+
+				} else if (val === 100) {
+
+				}
+			},
+			getDeptList() {
+				getDept().then(response => {
+					// this.deptOptions = dataFormat(handleTree(response.data, "deptId"), 'deptId')
+					let data = handleTree(response.data, "deptId")
+					this.deptOptions = transformDeptData(data)
+				})
+			},
+			// 切换门店
+			changeDept(val) {
+                console.log(this.registerForm.deptId,'选择门店')
+			},
+		}
+	}
+</script>
+
+<style lang="scss" scoped>
+	page {
+		background-color: #ffffff;
+	}
+
+	.normal-login-container {
+		height: 100vh;
+		width: 100%;
+		background-color: #ffffff;
+
+		.logo-content {
+			width: 100%;
+			font-size: 21px;
+			text-align: center;
+			padding-top: 15%;
+
+			image {
+				border-radius: 4px;
+			}
+
+			.title {
+				margin-left: 10px;
+			}
+		}
+
+		.login-form-content {
+			text-align: center;
+			margin: 20px auto;
+			margin-top: 15%;
+			width: 80%;
+
+			.input-item {
+				margin: 20px auto;
+				background-color: #f5f6f7;
+				height: 45px;
+				border-radius: 20px;
+
+				.select-role {
+					text-align: left;
+					font-size: 14px;
+					color: grey;
+					
+					::v-deep .uni-select {
+						border: 0px solid #e5e5e5;
+					}
+				}
+
+				.icon {
+					font-size: 38rpx;
+					margin-left: 10px;
+					color: #999;
+				}
+
+				.input {
+					width: 100%;
+					font-size: 14px;
+					line-height: 20px;
+					text-align: left;
+					padding-left: 15px;
+				}
+
+			}
+
+			.register-btn {
+				margin-top: 40px;
+				height: 45px;
+			}
+
+			.xieyi {
+				color: #333;
+				margin-top: 20px;
+			}
+
+			.login-code {
+				height: 38px;
+				float: right;
+
+				.login-code-img {
+					height: 38px;
+					position: absolute;
+					margin-left: 10px;
+					width: 200rpx;
+				}
+			}
+		}
+	}
+</style>
