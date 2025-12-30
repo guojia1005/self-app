@@ -27,7 +27,7 @@
 						<view class="class-btn">
 							<button size="mini" class="class-sub-btn" @click="cancelStudy(item)">取消</button>
 							<button 
-								v-if="shouldShowStudyButton(item)" 
+								v-if="shouldShowStudyButton(item) && item.releaseStatus === '2'" 
 								size="mini" 
 								class="class-sub-btn" 
 								@click="goTostudy(item)"

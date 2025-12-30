@@ -184,7 +184,7 @@
 					let data = {
 						releaseId: this.info.releaseId,
 						status: this.info.status,
-						teacherAnswerUrl: url.join(','),
+						teacherProblemUrl: url.join(','),
 						teacherUrlName: urlName.join(','),
 					}
 					console.log(data, '新增')
@@ -196,7 +196,7 @@
 								duration: 2000
 							});
 							setTimeout(() => {
-								uni.switchTab({
+								uni.reLaunch({
 									url: `/pages/work/index`
 								})
 							}, 1000);
@@ -237,7 +237,7 @@
 								duration: 2000
 							});
 							setTimeout(() => {
-								uni.switchTab({
+								uni.reLaunch({
 									url: `/pages/study/index`
 								})
 							}, 1000);

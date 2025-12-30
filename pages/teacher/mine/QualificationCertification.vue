@@ -97,7 +97,6 @@
 			this.topicOptions = [];
 			this.transferDirection = [];
 			this.getDictData();
-			console.log(this.$store.state.user.id)
 		},
 		methods: {
 			async getDictData() {
@@ -185,7 +184,6 @@
 				this.uploadImage(e.tempFiles, 2);
 			},
 			async uploadImage(file, type) {
-				console.log(file)
 				const tempFilePaths = file[0].url;
 				uni.uploadFile({
 					url: baseUrl + '/common/upload', // 替换为实际接口地址

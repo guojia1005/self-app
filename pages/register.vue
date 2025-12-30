@@ -14,7 +14,7 @@
 			<view v-if="registerForm.roleIds === 2" class="input-item flex align-center">
 				<!-- <view class="iconfont icon-user icon"></view> -->
 				<uni-data-picker placeholder="请选择门店" :localdata="deptOptions" v-model="registerForm.deptId"
-					@change="changeDept" />
+					:border="false" class="no-border-picker" @change="changeDept" />
 			</view>
 			<view class="input-item flex align-center">
 				<!-- <view class="iconfont icon-user icon"></view> -->
@@ -162,7 +162,6 @@
 			},
 			// 切换角色
 			changeRole(val) {
-				console.log(val, '角色')
 				if (val === 2) {
 
 				} else if (val === 100) {
@@ -171,14 +170,13 @@
 			},
 			getDeptList() {
 				getDept().then(response => {
-					// this.deptOptions = dataFormat(handleTree(response.data, "deptId"), 'deptId')
 					let data = handleTree(response.data, "deptId")
 					this.deptOptions = transformDeptData(data)
 				})
 			},
 			// 切换门店
 			changeDept(val) {
-                console.log(this.registerForm.deptId,'选择门店')
+                
 			},
 		}
 	}
@@ -244,7 +242,21 @@
 					text-align: left;
 					padding-left: 15px;
 				}
-
+				
+				.no-border-picker {
+					width: 100%;
+					::v-deep .input-value {
+						background-color: transparent;
+						border: none;
+						padding-left: 0;
+						border-radius: 20px;
+					}
+					::v-deep .placeholder {
+						font-size: 14px;
+						color: #666;
+						padding-left: 15px;
+					}
+				}
 			}
 
 			.register-btn {

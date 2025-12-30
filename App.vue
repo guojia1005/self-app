@@ -7,22 +7,17 @@
 	export default {
 		onLaunch: function() {
 			this.initApp()
-			// 在这里检查配置
-			console.log('检查tabBar配置:', this.globalData?.tabBar || '未找到配置')
 
 			// 或者检查全局配置
 			const appConfig = wx.getAppBaseInfo?.() || {}
-			console.log('应用基础配置:', appConfig)
 		},
 		onShow: function() {
-			// console.log('App Show');
 			uni.hideTabBar()
 			// 也可以在这里检查
 			const tabBar = wx.getTabBar?.()
-			console.log('获取tabBar实例:', tabBar)
 		},
 		onHide: function() {
-			// console.log('App Hide');
+			
 		},
 		globalData: {
 			userRole: '',

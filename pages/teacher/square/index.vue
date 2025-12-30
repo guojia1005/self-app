@@ -70,7 +70,7 @@
 									下课
 								</button>
 								<button v-if="item.releaseStatus === '3'" size="mini" class="card-sub-btn" @click="uploadExercises(item)">课后测</button>
-								<button v-if="item.releaseStatus === '2' && shouldShowGoToClassBtn(item)"
+								<button v-if="item.releaseStatus === '2'"
 								size="mini" class="card-sub-btn" @click="uploadExercises(item)">课前测</button>
 							</view>
 						</uni-card>
@@ -168,12 +168,10 @@
 								.substring(17, 22);
 						}
 						this.data = data;
-						console.log(this.data, 'pp')
 					}
 					this.isLoading = false;
 					this.stopRefresh();
 				}).catch(error => {
-					console.error('获取数据失败:', error);
 					this.isLoading = false;
 					this.stopRefresh();
 					uni.showToast({
@@ -197,7 +195,7 @@
 			},
 			// scroll-view 刷新恢复
 			onRestore() {
-				console.log('刷新状态恢复');
+				
 			},
 			// 停止刷新
 			stopRefresh() {
@@ -314,7 +312,6 @@
 
 					return Math.max(0, timeDiffHours); // 如果已经过了上课时间，返回0
 				} catch (error) {
-					console.error('时间解析错误:', error);
 					return 0;
 				}
 			},
@@ -388,7 +385,6 @@
 			},
 			// 检查是否在上课时间段内（captureTime到endTime之间）
 			isInClassTime(item) {
-				console.log(item, '是否在上课时间内')
 				if (!item.captureTime || !item.endTime) return false;
 
 				try {
@@ -414,7 +410,6 @@
 					// 判断当前时间是否在上课时间段内
 					return now >= captureDate && now <= endDate;
 				} catch (error) {
-					console.error('时间解析错误:', error);
 					return false;
 				}
 			},
@@ -425,8 +420,6 @@
 					title: '处理中...',
 					mask: true
 				});
-
-				console.log(item.releaseId, 'releaseId')
 				// 调用取消接口
 				cancelClass(item.releaseId).then(response => {
 					uni.hideLoading();
