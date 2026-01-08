@@ -62,7 +62,10 @@
 	} from "@/api/system/dict/data.js";
 	import { getReleaseInfo, cancelPost } from '@/api/study/release.js';
 	import { getMeetingInfo } from '@/api/tencent/meeting.js'; // 新增：获取会议信息接口
-	import { dataFormat, getDictOption } from '@/utils/format.js'
+	import { dataFormat, getDictOption } from '@/utils/format.js';
+	import {
+		getConnect
+	} from '@/api/teacher/teacherSquare.js';
 	export default {
 		name: 'StudyProcress',
 		data() {
@@ -148,6 +151,10 @@
 						for(let i = 0; i < data.length; i++) {
 							data[i].captureTime = (data[i].timePeriod).substring(0, 16);
 							data[i].endTime = (data[i].timePeriod).substring(0, 10) + ' ' + (data[i].timePeriod).substring(17, 22);
+						/* 	if(this.shouldShowStudyButton(data[i]) === true) {
+								this.getTencentConnect(data[i], i);
+							} */
+							this.getTencentConnect(data[i], i);
 						}
 						this.studyData = data;
 					}
@@ -160,6 +167,15 @@
 					// 停止刷新和加载
 					this.stopRefresh();
 					uni.hideLoading();
+				})
+			},
+			// 查询腾讯会议连接
+			getTencentConnect(item, index) {
+				getConnect(item.releaseId).then(response => {
+					if (response.code === 200 && response.data) {
+						this.studyData[index].meetingUrl = response.data.meetingUrl;
+						this.studyData[index].meetingCode = response.data.meetingCode;
+					}
 				})
 			},
 			// 下拉刷新处理
@@ -428,45 +444,32 @@
 					return;
 				}
 				
-				// 设置加载状态
-				this.$set(this.loadingStates, item.releaseId, true);
-				
-				try {
-					// 1. 先获取腾讯会议信息
-					const meetingResponse = await this.getMeetingInfo(item.releaseId);
+				if (item.meetingUrl) {
+					// 检查链接是否包含协议头
+					let meetingUrl = item.meetingUrl;
 					
-					if (meetingResponse && meetingResponse.code === 200) {
-						const meetingData = meetingResponse.data;
-						
-						// 2. 检查会议是否有效
-						if (!this.validateMeetingInfo(meetingData)) {
-							uni.showToast({
-								title: '会议信息不完整',
-								icon: 'none',
-								duration: 2000
-							});
-							return;
-						}
-						
-						// 3. 提供多种进入会议的方式
-						this.showJoinMeetingOptions(meetingData);
-					} else {
-						uni.showToast({
-							title: '获取会议信息失败',
-							icon: 'none',
-							duration: 2000
-						});
+					// 如果链接没有协议头，添加https://
+					if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
+						meetingUrl = 'https://' + meetingUrl;
 					}
-				} catch (error) {
-					console.error('进入会议失败:', error);
+					
+					// 准备传递的参数
+					const params = {
+						url: meetingUrl,
+						meetingCode: item.meetingCode || '',
+						topicName: item.topicName || '腾讯会议'
+					};
+					
+					// 使用uni-app的API跳转到外部链接
+					uni.navigateTo({
+						url: '/pages/webview/webview?params=' + encodeURIComponent(JSON.stringify(params))
+					});
+				} else {
 					uni.showToast({
-						title: '网络错误，请重试',
+						title: '会议链接暂不可用',
 						icon: 'none',
 						duration: 2000
 					});
-				} finally {
-					// 清除加载状态
-					this.$set(this.loadingStates, item.releaseId, false);
 				}
 			},
 			

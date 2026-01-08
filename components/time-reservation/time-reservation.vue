@@ -11,15 +11,22 @@
 		<!-- 时间段选择 -->
 		<view class="time-section">
 			<!-- 时间列表 -->
-			<view class="time-list">
-				<view v-for="(time, index) in currentTimeSlots" :key="index" class="time-item"
-					:class="{ 
+			<view v-if="!flag" class="time-list">
+				<view v-for="(time, index) in currentTimeSlots" :key="index" class="time-item" :class="{ 
 						selected: time.selected, 
 						disabled: time.disabled 
-					}" 
-					@click="!time.disabled && toggleTimeSlot(index, time)">
+					}" @click="!time.disabled && toggleTimeSlot(index, time)">
 					<text class="time-text">{{ time.workStartTime }} - {{ time.workEndTime }}</text>
 					<text v-if="time.disabled" class="disabled-text">(已过)</text>
+				</view>
+			</view>
+			<view v-if="!!flag" class="time-list">
+				<view v-for="(time, index) in currentTimeSlots" :key="index" class="time-item" :class="{ 
+						selected: time.selected, 
+						disabled: time.disabled 
+					}" @click="!time.disabled && toggleTimeSlot(index, time)">
+					<text class="time-text">{{ time.workStartTime }} - {{ time.workEndTime }}</text>
+					<text v-if="time.disabled" class="disabled-text">({{ time.statusText }})</text>
 				</view>
 			</view>
 			<!-- <view class="select-btn">
@@ -33,8 +40,21 @@
 	import {
 		getTime
 	} from "@/api/study/postInformation.js";
+	import {
+		getTeacherTime
+	} from "@/api/study/release.js";
 	export default {
 		name: "TimeReservation",
+		props: {
+			flag: {
+				type: Boolean,
+				default: true,
+			},
+			teacherId: {
+			    type: [Number, String], // 允许 Number 或 String
+			    default: null, // 或默认值为 null
+			}
+		},
 		data() {
 			return {
 				currentTabIndex: 0,
@@ -74,66 +94,119 @@
 				const slots = [];
 				let timeList = []
 
-				getTime().then(response => {
-					if (response.code === 200) {
-						let data = response.data;
+                if(this.flag === true && this.teacherId) {
+					getTeacherTime({teacherId: this.teacherId}).then(response => {
+						if (response.code === 200) {
+							let data = response.data;
 
-						for (let i = 0; i < 4; i++) {
-							const date = new Date();
-							date.setDate(date.getDate() + i);
+							for (let i = 0; i < 4; i++) {
+								const date = data[i].date;
 
-							let dayTime = `${date.getFullYear()}-` + `${date.getMonth() + 1}-` + date.getDate()
-							dates.push({
-								day: date.getDate(),
-								month: `${date.getMonth() + 1}-`,
-								year: `${date.getFullYear()}-`,
-								dayTime: dayTime
-							});
-                            
-							// 为每一天生成时间段
-							let daySlots = [];
+								let dayTime = date
+								dates.push({
+									day: date.substring(8, 10),
+									month: date.substring(5, 8),
+									year: date.substring(0, 5),
+									dayTime: dayTime
+								});
 
-							for (let j = 0; j < data.length; j++) {
-								// 深拷贝对象，避免引用问题
-								const timeSlot = {
-									...data[j],
-									selected: false,
-									dayTime: dayTime,
-									startTime: dayTime + ' ' + data[j].workStartTime,
-									endTime: dayTime + ' ' + data[j].workEndTime,
-									disabled: false // 新增禁用状态
-								};
-								
-								// 判断时间段是否已过
-								this.checkTimeSlotDisabled(timeSlot, i);
-								
-								daySlots.push(timeSlot);
+								// 为每一天生成时间段
+								let daySlots = [];
+
+								for (let j = 0; j < data[i].timeSlots.length; j++) {
+									
+									// 深拷贝对象，避免引用问题
+									const timeSlot = {
+										...data[i].timeSlots[j],
+										selected: false,
+										dayTime: dayTime,
+										startTime: dayTime + ' ' + data[i].timeSlots[j].startTime,
+										endTime: dayTime + ' ' + data[i].timeSlots[j].endTime,
+										workStartTime: data[i].timeSlots[j].startTime,
+										workEndTime: data[i].timeSlots[j].endTime,
+										statusText: data[i].timeSlots[j].statusText,
+										status: data[i].timeSlots[j].status,
+										disabled: (data[i].timeSlots[j].status !== '0') // 新增禁用状态
+									};
+
+									// 判断时间段是否已过
+									this.checkTimeSlotDisabled(timeSlot, i);
+
+									daySlots.push(timeSlot);
+								}
+								slots.push(daySlots);
 							}
-							slots.push(daySlots);
+							this.dateList = dates;
+							this.timeSlots = slots;
 						}
+					})
+				} else {
+					getTime().then(response => {
+						if (response.code === 200) {
+							let data = response.data;
 
-						this.dateList = dates;
-						this.timeSlots = slots;
-					}
-				})
+							for (let i = 0; i < 4; i++) {
+								const date = new Date();
+								date.setDate(date.getDate() + i);
+
+								let year = date.getFullYear();
+								let month = (date.getMonth() + 1).toString().padStart(2, '0'); // 月份补0
+								let day = date.getDate().toString().padStart(2, '0'); // 日期也建议补0
+
+								let dayTime = `${year}-${month}-${day}`;
+
+								dates.push({
+									day: day,
+									month: month + '-',
+									year: year + '-',
+									dayTime: dayTime
+								});
+
+								// 为每一天生成时间段
+								let daySlots = [];
+
+								for (let j = 0; j < data.length; j++) {
+									// 深拷贝对象，避免引用问题
+									const timeSlot = {
+										...data[j],
+										selected: false,
+										dayTime: dayTime,
+										startTime: dayTime + ' ' + data[j].workStartTime,
+										endTime: dayTime + ' ' + data[j].workEndTime,
+										disabled: false // 新增禁用状态
+									};
+
+									// 判断时间段是否已过
+									this.checkTimeSlotDisabled(timeSlot, i);
+
+									daySlots.push(timeSlot);
+								}
+								slots.push(daySlots);
+							}
+
+							this.dateList = dates;
+							this.timeSlots = slots;
+						}
+					})
+				}
 			},
 
 			// 检查时间段是否已过并设置禁用状态
 			checkTimeSlotDisabled(timeSlot, dayIndex) {
 				// 如果不是今天（dayIndex === 0），则不处理
 				if (dayIndex !== 0) return;
-				
+
 				try {
 					// 解析开始时间
 					const [year, month, day] = timeSlot.dayTime.split('-').map(Number);
 					const [hours, minutes] = timeSlot.workStartTime.split(':').map(Number);
-					
+
 					// 创建时间段开始时间
 					const slotStartTime = new Date(year, month - 1, day, hours, minutes);
-					
+
 					// 获取当前时间
 					const now = this.currentTime;
-					
+
 					// 如果开始时间在当前时间之前，则已过
 					if (slotStartTime < now) {
 						timeSlot.disabled = true;
@@ -141,7 +214,6 @@
 						timeSlot.disabled = false;
 					}
 				} catch (error) {
-					console.error('时间解析错误:', error);
 					timeSlot.disabled = false;
 				}
 			},
@@ -154,16 +226,16 @@
 					const now = this.currentTime;
 					const today = new Date();
 					const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-					
+
 					todaySlots.forEach(slot => {
 						try {
 							// 解析开始时间
 							const [year, month, day] = slot.dayTime.split('-').map(Number);
 							const [hours, minutes] = slot.workStartTime.split(':').map(Number);
-							
+
 							// 创建时间段开始时间
 							const slotStartTime = new Date(year, month - 1, day, hours, minutes);
-							
+
 							// 如果开始时间在当前时间之前，则已过
 							if (slotStartTime < now) {
 								slot.disabled = true;
@@ -178,7 +250,7 @@
 							console.error('时间解析错误:', error);
 						}
 					});
-					
+
 					// 强制更新视图
 					this.$forceUpdate();
 				}
@@ -186,7 +258,7 @@
 
 			switchTab(index) {
 				this.currentTabIndex = index;
-				for(let i = 0; i < this.currentTimeSlots.length; i++) {
+				for (let i = 0; i < this.currentTimeSlots.length; i++) {
 					this.currentTimeSlots[i].selected = false;
 				}
 			},
@@ -194,7 +266,7 @@
 			toggleTimeSlot(index, time) {
 				// 如果时间段已禁用，不执行操作
 				if (time.disabled) return;
-				
+
 				const slots = this.timeSlots[this.currentTabIndex];
 				const idx = slots.findIndex(item => item === time);
 				if (idx !== -1) {
@@ -203,8 +275,8 @@
 					slots[idx].selected = true;
 				}
 				this.$forceUpdate();
-				for(let i = 0; i < this.dateList.length; i++) {
-					if(i === this.currentTabIndex) {
+				for (let i = 0; i < this.dateList.length; i++) {
+					if (i === this.currentTabIndex) {
 						time.dayTime = this.dateList[i].dayTime;
 					}
 				}
@@ -233,7 +305,8 @@
 					const selected = daySlots.filter(slot => slot.selected && !slot.disabled);
 					if (selected.length > 0) {
 						result.push({
-							date: this.formatDate(new Date(new Date().setDate(new Date().getDate() + dayIndex))),
+							date: this.formatDate(new Date(new Date().setDate(new Date().getDate() +
+								dayIndex))),
 							times: selected.map(slot => ({
 								start: slot.startTime,
 								end: slot.endTime,

@@ -56,12 +56,16 @@
 								<view>状态：{{ formatStatus(item.releaseStatus) }}</view>
 							</view>
 							<view class="content-btn">
-								<button v-if="item.releaseStatus !== '3'" size="mini" class="card-sub-btn"
-									@click="orderCancel(item)">取消</button>
+								<button v-if="shouldShowCancelBtn(item)" 
+								        size="mini" 
+								        class="card-sub-btn" 
+								        @click="orderCancel(item)">
+								    取消
+								</button>
 
 								<!-- 根据时间动态显示上课/下课按钮 -->
 								<button v-if="shouldShowGoToClassBtn(item)" size="mini" class="card-sub-btn"
-									@click="goToClass(item.id)">
+									@click="goToClass(item)">
 									去上课
 								</button>
 
@@ -70,6 +74,8 @@
 									下课
 								</button>
 								<button v-if="item.releaseStatus === '3'" size="mini" class="card-sub-btn" @click="uploadExercises(item)">课后测</button>
+								<button v-if="item.releaseStatus === '3'" size="mini" class="card-sub-btn" @click="feedBack(item, 'info')">学生反馈</button>
+								<button v-if="item.releaseStatus === '3'" size="mini" class="card-sub-btn" @click="evaluate(item)">评价</button>
 								<button v-if="item.releaseStatus === '2'"
 								size="mini" class="card-sub-btn" @click="uploadExercises(item)">课前测</button>
 							</view>
@@ -89,6 +95,44 @@
 				</view>
 			</scroll-view>
 		</view>
+		<view>
+			<!-- 提示窗示例 -->
+			<uni-popup ref="alertDialog" type="dialog">
+			     <view class="single-input-dialog">
+			       <view class="dialog-title">学生反馈</view>
+			       <uni-easyinput
+			         v-model="content"
+								  type="textarea"
+			         class="input-box" 
+			         placeholder="请输入..."
+			         :focus="true"
+					 :disabled="true"
+			       />
+			       <view class="dialog-actions">
+			         <text class="action-cancel-close" @click="closeFeedBack">关闭</text>
+			       </view>
+			     </view>
+			   </uni-popup>
+		</view>
+		<view>
+			<!-- 输入框示例 -->
+			 <uni-popup ref="singleInput" type="dialog">
+			      <view class="single-input-dialog">
+			        <view class="dialog-title">请对学生进行评价</view>
+			        <uni-easyinput
+			          v-model="content"
+					  type="textarea"
+			          class="input-box" 
+			          placeholder="请输入..."
+			          :focus="true"
+			        />
+			        <view class="dialog-actions">
+			          <text class="action-cancel" @click="cancelSingleInput">取消</text>
+			          <text class="action-confirm" @click="confirmSingleInput">确定</text>
+			        </view>
+			      </view>
+			    </uni-popup>
+		</view>
 	</view>
 </template>
 
@@ -96,7 +140,8 @@
 	import {
 		getPostInfo,
 		overClass,
-		cancelClass
+		cancelClass,
+		getConnect
 	} from '@/api/teacher/teacherSquare.js';
 	import {
 		selectDict
@@ -104,6 +149,11 @@
 	import {
 		getDictOption
 	} from '@/utils/format.js';
+	import {
+		sendEvaluate,
+		getEvaluate,
+		updateEvaluate
+	} from '@/api/study/release.js';
 	export default {
 		name: 'TeacherSquare',
 		data() {
@@ -125,6 +175,8 @@
 					'0': 20 // 24小时以内：20%
 				},
 				coursePrice: 100, // 课程单价，可根据实际情况调整或从接口获取
+				msgType: '', // 提示框类型
+				content: '',
 			}
 		},
 		created() {
@@ -166,6 +218,9 @@
 							data[i].captureTime = (data[i].timePeriod).substring(0, 16);
 							data[i].endTime = (data[i].timePeriod).substring(0, 11) + (data[i].timePeriod)
 								.substring(17, 22);
+							if(this.shouldShowGoToClassBtn(data[i]) === true) {
+								this.getTencentConnect(data[i], i);
+							}
 						}
 						this.data = data;
 					}
@@ -178,6 +233,15 @@
 						title: '加载失败',
 						icon: 'none'
 					});
+				})
+			},
+			// 查询腾讯会议连接
+			getTencentConnect(item, index) {
+				getConnect(item.releaseId).then(response => {
+					if (response.code === 200) {
+						this.data[index].meetingUrl = response.data.meetingUrl;
+						this.data[index].meetingCode = response.data.meetingCode;
+					}
 				})
 			},
 			// 下拉刷新
@@ -457,8 +521,34 @@
 				})
 			},
 			// 去上课
-			goToClass() {
-
+			goToClass(item) {
+				if (item.meetingUrl) {
+					// 检查链接是否包含协议头
+					let meetingUrl = item.meetingUrl;
+					
+					// 如果链接没有协议头，添加https://
+					if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
+						meetingUrl = 'https://' + meetingUrl;
+					}
+					
+					// 准备传递的参数
+					const params = {
+						url: meetingUrl,
+						meetingCode: item.meetingCode || '',
+						topicName: item.topicName || '腾讯会议'
+					};
+					
+					// 使用uni-app的API跳转到外部链接
+					uni.navigateTo({
+						url: '/pages/webview/webview?params=' + encodeURIComponent(JSON.stringify(params))
+					});
+				} else {
+					uni.showToast({
+						title: '会议链接暂不可用',
+						icon: 'none',
+						duration: 2000
+					});
+				}
 			},
 			// 上传习题
 			uploadExercises(item) {
@@ -510,7 +600,82 @@
 				} else if (val === '3') {
 					return '已上完';
 				}
-			}
+			},
+			// 在 methods 中添加
+			shouldShowCancelBtn(item) {
+			    // 课程未结束且不在上课时间段内
+			    return item.releaseStatus !== '3' && this.isInClassTime(item);
+			},
+			// 学生反馈
+			feedBack(item, type) {
+				this.msgType = type
+				this.$refs.alertDialog.open()
+				let params = {
+					releaseId: item.releaseId,
+					status: '1'
+				}
+				getEvaluate(params).then(response => {
+					if(response.code === 200) {
+						if(response.data.content) {
+							this.content = response.data.content;
+						}
+					}
+				})
+			},
+			// 关闭学生反馈弹窗
+			closeFeedBack() {
+				this.$refs.alertDialog.close();
+			},
+			// 评价
+			evaluate(item) {
+				this.evaluateId = '';
+				this.content = '';
+				this.releaseId = item.releaseId;
+				this.$refs.singleInput.open();
+				let params = {
+					releaseId: this.releaseId,
+					status: '2'
+				}
+				getEvaluate(params).then(response => {
+					if (response.code === 200) {
+						if (response.data) {
+							this.content = response.data.content;
+							this.evaluateId = response.data.evaluateId;
+						}
+					}
+				})
+			},
+			cancelSingleInput() {
+				this.$refs.singleInput.close();
+			},
+			// 课程评价
+			confirmSingleInput() {
+				if (this.evaluateId) {
+					let data = {
+						evaluateId: this.evaluateId,
+						releaseId: this.releaseId,
+						content: this.content,
+						status: '2'
+					}
+					console.log(data)
+					updateEvaluate(data).then(response => {
+						if (response.code === 200) {
+							this.$refs.singleInput.close();
+						}
+					})
+				} else {
+					let data = {
+						releaseId: this.releaseId,
+						content: this.content,
+						status: '2'
+					}
+					sendEvaluate(data).then(response => {
+						if (response.code === 200) {
+							this.$refs.singleInput.close();
+						}
+					})
+				}
+			},
 		}
 	}
 </script>
@@ -596,5 +761,55 @@
 				}
 			}
 		}
+	}
+
+	.single-input-dialog {
+		background: #fff;
+		border-radius: 12rpx;
+		padding: 40rpx;
+		width: 600rpx;
+	}
+
+	.dialog-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		margin-bottom: 30rpx;
+		text-align: center;
+	}
+
+	.input-box {
+		padding: 0 20rpx;
+		margin-bottom: 40rpx;
+	}
+
+	.dialog-actions {
+		display: flex;
+		justify-content: space-between;
+	}
+
+    .action-cancel-close,
+	.action-cancel,
+	.action-confirm {
+		flex: 1;
+		text-align: center;
+		height: 70rpx;
+		line-height: 70rpx;
+		border-radius: 8rpx;
+		font-size: 28rpx;
+	}
+	
+	.action-cancel-close {
+		background: #f8f8f8;
+		color: #333;
+	}
+
+	.action-cancel {
+		background: #f8f8f8;
+		color: #333;
+	}
+
+	.action-confirm {
+		background: #007aff;
+		color: #fff;
 	}
 </style>

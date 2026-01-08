@@ -133,7 +133,7 @@
 			},
 			// 用户注册
 			async register() {
-				let data = this.registerForm;
+				let data = JSON.parse(JSON.stringify(this.registerForm));
 				const roleIds = (data.roleIds).toString().split();
 				data.roleIds = roleIds;
 				appRegister(data).then(res => {

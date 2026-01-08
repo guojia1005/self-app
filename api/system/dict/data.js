@@ -58,3 +58,12 @@ export function selectDict(dictCode) {
     method: 'get',
   })
 }
+
+// 根据dictCode和value查询子值
+export function selectDictValue(params) {
+  return request({
+    url: '/system/dict/data/codeAndValue',
+    method: 'get',
+	params: params,
+  })
+}

@@ -222,7 +222,7 @@
 			},
 			// 我收藏的习题
 			collectExercises() {
-
+				this.$tab.navigateTo('/pages/student/mine/my-collection/my-collection')
 			},
 			// R币使用明细
 			usageDetailR() {

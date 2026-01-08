@@ -177,6 +177,36 @@
 	"style": {
 		"navigationBarTitleText": "测试题"
 	}
+},
+{
+	"path": "pages/webview/webview",
+	"style": {
+		"navigationBarTitleText": "腾讯会议"
+	}
+},
+{
+	"path": "pages/study/recorded-broadcast/recorded-broadcast",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "components/question/question-page",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "components/question/teacher-modal",
+	"style": {
+		"navigationBarTitleText": ""
+	}
+},
+{
+	"path": "pages/student/mine/my-collection/my-collection",
+	"style": {
+		"navigationBarTitleText": "我的收藏"
+	}
 }
 ],
 

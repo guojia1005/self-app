@@ -19,7 +19,8 @@
 						<view>地点：{{ item.address }}</view>
 						<view>授课教师：{{ item.teacher }}</view>
 						<view class="class-btn">
-							<button size="mini" class="class-sub-btn" @click="feedBack(item)">老师反馈</button>
+							<button size="mini" class="class-sub-btn" @click="feedBack(item, 'info')">
+								老师反馈</button>
 							<button size="mini" class="class-sub-btn" @click="evaluate(item)">评价</button>
 							<button size="mini" class="class-sub-btn" @click="meetAgain(item)">再约</button>
 							<button size="mini" class="class-sub-btn" @click="afterTest(item)">课后测</button>
@@ -39,6 +40,39 @@
 				<text class="load-more-text">{{ loadMoreText }}</text>
 			</view>
 		</scroll-view>
+		<view>
+			<!-- 提示窗示例 -->
+			<uni-popup ref="alertDialog" type="dialog">
+			     <view class="single-input-dialog">
+			       <view class="dialog-title">老师反馈</view>
+			       <uni-easyinput
+			         v-model="content"
+								  type="textarea"
+			         class="input-box" 
+			         placeholder="请输入..."
+			         :focus="true"
+					 :disabled="true"
+			       />
+			       <view class="dialog-actions">
+			         <text class="action-cancel-close" @click="closeFeedBack">关闭</text>
+			       </view>
+			     </view>
+			   </uni-popup>
+		</view>
+		<view>
+			<!-- 输入框示例 -->
+			<uni-popup ref="singleInput" type="dialog">
+				<view class="single-input-dialog">
+					<view class="dialog-title">请评价当前课程</view>
+					<uni-easyinput v-model="content" type="textarea" class="input-box" placeholder="请输入..."
+						:focus="true" />
+					<view class="dialog-actions">
+						<text class="action-cancel" @click="cancelSingleInput">取消</text>
+						<text class="action-confirm" @click="confirmSingleInput">确定</text>
+					</view>
+				</view>
+			</uni-popup>
+		</view>
 	</view>
 </template>
 
@@ -48,7 +82,11 @@
 	} from "@/api/system/dict/data.js";
 	import {
 		getReleaseInfo,
-		cancelStudy
+		cancelStudy,
+		getHistory,
+		sendEvaluate,
+		getEvaluate,
+		updateEvaluate
 	} from '@/api/study/release.js';
 	import {
 		getMeetingInfo
@@ -76,7 +114,11 @@
 				isRefreshing: false, // 是否正在刷新
 				refresherTriggered: false, // scroll-view 下拉刷新状态
 				scrollViewHeight: 0, // scroll-view 高度
-				loadMoreText: '' // 加载更多提示文字
+				loadMoreText: '', // 加载更多提示文字
+				content: '', // 当前课程评价内容
+				msgType: '', // 提示框类型
+				releaseId: '',
+				evaluateId: '',
 			}
 		},
 		created() {
@@ -190,10 +232,14 @@
 			},
 			// 再约
 			meetAgain(item) {
-				let teacherId = 154;
-				let teacherName = '马冬梅';
-				uni.navigateTo({
-					url: `/pages/study/post-information/post-information?flag=1&teacherId=${teacherId}&teacherName=${teacherName}`
+				getHistory(item.releaseId).then(response => {
+					if (response.code === 200) {
+						let dataString = JSON.stringify(response.data);
+						uni.navigateTo({
+							url: `/pages/study/post-information/post-information?data=` +
+								encodeURIComponent(dataString)
+						})
+					}
 				})
 			},
 			// 课后测
@@ -208,12 +254,74 @@
 				})
 			},
 			// 评价
-			evaluate() {
-
+			evaluate(item) {
+				this.evaluateId = '';
+				this.content = '';
+				this.releaseId = item.releaseId;
+				this.$refs.singleInput.open();
+				let params = {
+					releaseId: this.releaseId,
+					status: '1'
+				}
+				getEvaluate(params).then(response => {
+					if (response.code === 200) {
+						if (response.data) {
+							this.content = response.data.content;
+							this.evaluateId = response.data.evaluateId;
+						}
+					}
+				})
+			},
+			cancelSingleInput() {
+				this.$refs.singleInput.close();
+			},
+			// 课程评价
+			confirmSingleInput() {
+				if (this.evaluateId) {
+					let data = {
+						evaluateId: this.evaluateId,
+						releaseId: this.releaseId,
+						content: this.content,
+						status: '1'
+					}
+					console.log(data)
+					updateEvaluate(data).then(response => {
+						if (response.code === 200) {
+							this.$refs.singleInput.close();
+						}
+					})
+				} else {
+					let data = {
+						releaseId: this.releaseId,
+						content: this.content,
+						status: '1'
+					}
+					sendEvaluate(data).then(response => {
+						if (response.code === 200) {
+							this.$refs.singleInput.close();
+						}
+					})
+				}
 			},
 			// 老师反馈
-			feedBack() {
-
+			feedBack(item, type) {
+				this.msgType = type
+				this.$refs.alertDialog.open()
+				let params = {
+					releaseId: item.releaseId,
+					status: '2'
+				}
+				getEvaluate(params).then(response => {
+					if(response.code === 200) {
+						if(response.data.content) {
+							this.content = response.data.content;
+						}
+					}
+				})
+			},
+			// 关闭学生反馈弹窗
+			closeFeedBack() {
+				this.$refs.alertDialog.close();
 			},
 		}
 	}
@@ -308,5 +416,56 @@
 
 	::v-deep .uni-scroll-view {
 		min-height: 100vh;
+	}
+
+	.single-input-dialog {
+		background: #fff;
+		border-radius: 12rpx;
+		padding: 40rpx;
+		width: 600rpx;
+	}
+
+	.dialog-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		margin-bottom: 30rpx;
+		text-align: center;
+	}
+
+	.input-box {
+		padding: 0 20rpx;
+		margin-bottom: 40rpx;
+	}
+
+	.dialog-actions {
+		display: flex;
+		justify-content: space-between;
+	}
+
+    .action-cancel-close,
+	.action-cancel,
+	.action-confirm {
+		flex: 1;
+		text-align: center;
+		height: 70rpx;
+		line-height: 70rpx;
+		border-radius: 8rpx;
+		font-size: 28rpx;
+	}
+	
+	.action-cancel-close {
+		background: #f8f8f8;
+		color: #333;
+	}
+
+	.action-cancel {
+		background: #f8f8f8;
+		color: #333;
+		margin-right: 120rpx;
+	}
+
+	.action-confirm {
+		background: #007aff;
+		color: #fff;
 	}
 </style>

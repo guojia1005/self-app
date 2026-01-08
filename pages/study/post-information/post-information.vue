@@ -4,45 +4,51 @@
 		<view class="post-content">
 			<uni-forms :modelValue="formData" label-width="140px" border>
 				<uni-forms-item label="主题" name="topicName">
-					<uni-easyinput type="text" v-model="formData.topicName" placeholder="请输入" />
+					<uni-easyinput type="text" v-model="formData.topicName" placeholder="请输入" :disabled="!!flag" />
 				</uni-forms-item>
 				<uni-forms-item label="类型" name="subType">
 					<uni-data-select v-model="formData.subType" placeholder="请选择"
-						:localdata="subTypeOptions"></uni-data-select>
+						:localdata="subTypeOptions" :disabled="!!flag"></uni-data-select>
 				</uni-forms-item>
 				<uni-forms-item label="选择学科" name="stuSubject">
 					<uni-data-select v-model="formData.stuSubject" placeholder="请选择" :border="true"
-						:localdata="subjectOptions" @change="clickSubject"></uni-data-select>
+						:localdata="subjectOptions" @change="clickSubject" :disabled="!!flag"></uni-data-select>
 				</uni-forms-item>
 				<uni-forms-item label="选择年级" name="stuGrade">
 					<uni-data-select v-model="formData.stuGrade" placeholder="请选择" :border="true"
-						:localdata="gradeOptions"></uni-data-select>
+						:localdata="gradeOptions" :disabled="!!flag"></uni-data-select>
 				</uni-forms-item>
 				<uni-forms-item label="选择专题（单选）" name="featureOne" v-if="formData.subType === '1'">
-					<uni-data-select v-model="formData.featureOne" placeholder="请选择" :border="true"
+					<uni-data-select v-if="!flag" v-model="formData.featureOne" placeholder="请选择" :border="true"
 						:localdata="topicOptions" @change="clickTopic"></uni-data-select>
+					<uni-easyinput v-if="!!flag" type="text" v-model="featureOneList.text" placeholder="暂无一级专题" disabled
+						:readonly="true" :input-border="false">
+					</uni-easyinput>	
 				</uni-forms-item>
 				<uni-forms-item label="二级专题（可多选）" name="featureTwo" v-if="formData.subType === '1'">
-					<select-checkbox ref="selectCheckbox" v-model="formData.featureTwo" placeholder="请选择" collapse-tags
+					<select-checkbox v-if="!flag" ref="selectCheckbox" v-model="formData.featureTwo" placeholder="请选择" collapse-tags
 						:collapse-tags-num="2" :multiple="true" dataKey="text" dataValue="value"
 						:localdata="secondTopicOptions" @change="changeFeaTwo" />
+					<uni-easyinput v-if="!!flag" type="text" v-model="featureTwoList.text" placeholder="暂无二级专题" disabled
+						:readonly="true" :input-border="false">
+					</uni-easyinput>	
 				</uni-forms-item>
 				<uni-forms-item label="历史最高成绩" name="historyHighScore">
-					<uni-easyinput type="number" v-model="formData.historyHighScore" placeholder="请输入" />
+					<uni-easyinput type="number" v-model="formData.historyHighScore" placeholder="请输入" :disabled="!!flag" />
 				</uni-forms-item>
 				<uni-forms-item label="历史最低成绩" name="historyLowScore">
-					<uni-easyinput type="number" v-model="formData.historyLowScore" placeholder="请输入" />
+					<uni-easyinput type="number" v-model="formData.historyLowScore" placeholder="请输入" :disabled="!!flag" />
 				</uni-forms-item>
 				<uni-forms-item label="教师风格" name="hopeTeachStyle">
 					<uni-data-select v-model="formData.hopeTeachStyle" placeholder="请选择" :border="true"
-						:localdata="styleOptions"></uni-data-select>
+						:localdata="styleOptions" :disabled="!!flag"></uni-data-select>
 				</uni-forms-item>
 				<uni-forms-item label="期望教师性别" name="hopeTeachSex">
 					<uni-data-select v-model="formData.hopeTeachSex" placeholder="请选择" :border="true"
-						:localdata="sexOptions"></uni-data-select>
+						:localdata="sexOptions" :disabled="!!flag"></uni-data-select>
 				</uni-forms-item>
 				<uni-forms-item label="期望上课次数" name="hopeClassNumber">
-					<uni-easyinput type="number" v-model="formData.hopeClassNumber" placeholder="请输入" />
+					<uni-easyinput type="number" v-model="formData.hopeClassNumber" placeholder="请输入" :disabled="!!flag" />
 				</uni-forms-item>
 				<uni-forms-item label="预约时间">
 					<button type="primary" size="mini" @click="clickTime">选择时间</button>
@@ -86,7 +92,7 @@
 		<!-- 普通弹窗 -->
 		<uni-popup ref="popup" background-color="#fff" @change="changePop">
 			<view class="popup-content" style="width: 100%;">
-				<time-reservation ref="timePicker" />
+				<time-reservation ref="timePicker" :flag="hasPreSelectedTeacher" :teacherId="teacherId" />
 			</view>
 			<view class="tip-content">
 				<view>
@@ -110,7 +116,8 @@
 		getDictOption
 	} from '@/utils/format';
 	import {
-		selectDict
+		selectDict,
+		selectDictValue
 	} from "@/api/system/dict/data.js";
 	import {
 		upLoadImg
@@ -128,6 +135,7 @@
 		releaseInfo
 	} from "@/api/study/postInformation.js";
 	import selectCheckbox from '../../../components/select-checkbox/select-checkbox.vue';
+	import { getTeacherTime } from '@/api/study/release.js'
 	export default {
 		name: 'PostStudy',
 		components: {
@@ -136,13 +144,7 @@
 			selectCheckbox
 		},
 		onLoad(query) {
-			this.flag = query.flag;
-			this.teacherId = query.teacherId;
-			this.teacherName = query.teacherName;
-			// 如果有预选老师，初始化显示
-			if (this.teacherId && this.teacherName) {
-				this.handlePreSelectedTeacher();
-			}
+			this.initPage(query)
 		},
 		data() {
 			return {
@@ -152,6 +154,7 @@
 					featureTwo: [],
 					featureTwoName: [],
 					chooseTeacher: [],
+					hopeClassNumber: 1,
 				},
 				subTypeOptions: [],
 				subjectOptions: [],
@@ -175,6 +178,8 @@
 				teacherId: '',
 				// 新增：预选老师的显示名称
 				selectedTeacherDisplay: '',
+				featureOneList: {},
+				featureTwoList: {},
 			}
 		},
 		computed: {
@@ -210,6 +215,112 @@
 			this.getDictData();
 		},
 		methods: {
+			async initPage(options) {
+				// 参数解析
+				if (options && options.data) {
+					try {
+						const params = JSON.parse(decodeURIComponent(options.data))
+						this.formData = params;
+						this.flag = 1;
+						this.teacherId = params.teacherId;
+						this.teacherName = params.teacherName;
+						// 如果有预选老师，初始化显示
+						if (this.teacherId && this.teacherName) {
+							this.handlePreSelectedTeacher();
+						}
+						// this.clickSubject(this.formData.stuSubject);
+						let stuSubjectList = await this.getDictValue(122, this.formData.stuSubject);
+						let stuSubjectCode = stuSubjectList.code;
+						this.featureOneList = await this.getDictValue(stuSubjectCode, this.formData.featureOne);
+						this.getDictValueSplice(this.featureOneList.code, this.formData.featureTwo);
+					} catch (error) {
+						uni.showToast({
+							title: '参数错误',
+							icon: 'none'
+						})
+					}
+				} else {
+					console.warn('未接收到参数')
+				}
+			},
+			getDictValue(code, val) {
+				let params = {
+					dictCode: code,
+					value: val
+				}
+				return new Promise((resolve, reject) => {
+					selectDictValue(params).then(response => {
+						if (response.code === 200) {
+							let data = response.data;
+							let list = {}
+							list.text = data.dictLabel;
+							list.value = data.dictValue;
+							list.code = data.dictCode;
+							resolve(list); // ✅ 使用 resolve 返回结果
+						}
+					})
+				})
+			},
+			// 修改后的 getDictValueSplice 方法
+			async getDictValueSplice(code, val) {
+			  // 检查必要的参数
+			  if (!code || !val) {
+			    return;
+			  }
+			  
+			  const parentCode = code; // 上级code
+			  const valueStr = val; // 多个value的逗号拼接字符串
+			  
+			  // 如果 featureTwo 是空值
+			  if (!valueStr || valueStr.trim() === '') {
+			    this.featureTwoList.text = '';
+			    return;
+			  }
+			  
+			  // 分割字符串为数组
+			  const values = valueStr.split(',').map(v => v.trim()).filter(v => v);
+			  
+			  if (values.length === 0) {
+			    this.featureTwoList.text = '';
+			    return;
+			  }
+			  
+			  try {
+			    // 存储所有异步请求
+			    const promises = values.map(value => {
+			      // 调用 selectDictValue 方法，传入上级code和当前value
+				  let params = {
+					  dictCode: parentCode,
+					  value: value
+				  }
+			      return selectDictValue(params).then(response => {
+			        if (response.code === 200 && response.data) {
+			          // 假设返回的数据结构包含text字段
+			          return response.data.dictLabel;
+			        }
+			        return value; // 如果没找到，返回原值
+			      }).catch(error => {
+			        return value; // 出错时返回原值
+			      });
+			    });
+			    
+			    // 等待所有请求完成
+			    const texts = await Promise.all(promises);
+			    
+			    // 过滤空值并用逗号拼接
+			    const combinedText = texts.filter(text => text && text.trim()).join(',');
+			    
+			    // 将结果存放到 featureTwoList 的 text 属性中
+			    this.featureTwoList.text = combinedText;
+			    
+			    return combinedText;
+			    
+			  } catch (error) {
+			    // 如果失败，将所有原始值拼接作为text
+			    this.featureTwoList.text = values.join(',');
+			    return values.join(',');
+			  }
+			},
 			async getDictData() {
 				// 类型
 				this.subTypeOptions = await getDictOption(131);
@@ -290,7 +401,6 @@
 			},
 			// 修改 handleTeacherSelection 方法
 			handleTeacherSelection() {
-
 				// 如果有预选老师，不需要执行此方法
 				if (this.hasPreSelectedTeacher) {
 					return;
@@ -519,6 +629,13 @@
 					});
 					return
 				}
+				if (!this.formData.hopeClassNumber) {
+					uni.showToast({
+						title: '请输入上课次数',
+						icon: 'none'
+					});
+					return
+				}
 				if (!this.timeData.workStartTime) {
 					uni.showToast({
 						title: '请选择上课时间',
@@ -541,6 +658,15 @@
 					});
 					return;
 				}
+				let featureTwo = '';
+				let featureTwoName = '';
+				if(!!this.flag) {
+				    featureTwo = this.formData.featureTwo;
+				    featureTwoName = this.formData.featureTwoName;
+				} else {
+				    featureTwo = (this.formData.featureTwo).join(',');
+				    featureTwoName = (this.formData.featureTwoName).join(',');
+				}
 				let data = {
 					studentId: this.$store.state.user.id,
 					studentName: this.$store.state.user.nickName,
@@ -549,8 +675,8 @@
 					stuSubject: this.formData.stuSubject,
 					stuGrade: this.formData.stuGrade,
 					featureOne: this.formData.featureOne,
-					featureTwo: (this.formData.featureTwo).join(','),
-					featureTwoName: (this.formData.featureTwoName).join(','),
+					featureTwo: featureTwo,
+					featureTwoName: featureTwoName,
 					historyHighScore: this.formData.historyHighScore,
 					historyLowScore: this.formData.historyLowScore,
 					chooseTeacher: this.selectedResult,
@@ -573,7 +699,13 @@
 							duration: 2000
 						});
 						setTimeout(() => {
-							this.$emit('update-data');
+							if(!this.flag) {
+								this.$emit('update-data', this.flag);
+							} else {
+								uni.navigateTo({
+									url: `/pages/study/index?flag=${this.flag}`
+								});
+							}
 						}, 1000);
 					}
 				});
@@ -593,7 +725,7 @@
 			// 选择时间
 			clickTime() {
 				// 如果老师选择器是打开的，先关闭它
-				if (this.$refs.treeSelect) {
+				if (this.$refs.treeSelect && !this.flag) {
 					this.$refs.treeSelect.close()
 				}
 				this.$refs.popup.open('center')
@@ -656,7 +788,7 @@
 				this.formData.historyLowScore = '';
 				this.formData.hopeTeachStyle = ''
 				this.formData.hopeTeachSex = '2';
-				this.formData.hopeClassNumber = '';
+				this.formData.hopeClassNumber = 1;
 				this.timeData = {
 					dayTime: undefined,
 					workStartTime: undefined,

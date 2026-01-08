@@ -35,3 +35,11 @@ export function cancelClass(releaseId) {
     method: 'delete',
   })
 }
+
+/* 查询腾讯会议连接*/
+export function getConnect(releaseId) {
+  return request({
+    url: '/teacher/teacherReplyRelease/query/' + releaseId,
+    method: 'get',
+  })
+}
